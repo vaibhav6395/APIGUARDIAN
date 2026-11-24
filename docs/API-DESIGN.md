@@ -27,6 +27,7 @@ Workspace membership is verified server-side on every request. Unknown or inacce
 | GET | /projects/{projectId}/policies | List saved authorization policies |
 | POST | /projects/{projectId}/policies | Create or update an expected access decision |
 | POST | /projects/{projectId}/policies/evaluate | Compare expected and caller-supplied observed decision; persist evaluation |
+| GET | /projects/{projectId}/policies/evaluations | List the latest 100 persisted evaluations |
 | GET | /projects/{projectId}/findings | List project findings |
 | PATCH | /projects/{projectId}/findings/{findingId} | Update finding status to OPEN, ACKNOWLEDGED or RESOLVED |
 
