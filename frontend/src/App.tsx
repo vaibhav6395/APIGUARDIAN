@@ -5,6 +5,7 @@ type User={id:number;email:string;displayName:string};
 type Project={id:number;workspaceId:number;name:string;description:string|null;createdAt:string;updatedAt:string};
 type Policy={id:number;projectId:number;role:string;resource:string;action:string;expected:'ALLOW'|'DENY'};
 type Finding={id:number;title:string;severity:string;status:string;details:string;createdAt:string};
+type EvaluationHistory={id:number;role:string;resource:string;action:string;expected:'ALLOW'|'DENY';observed:'ALLOW'|'DENY';matched:boolean;explanation:string;createdAt:string};
 type Evaluation={role:string;resource:string;action:string;expected:'ALLOW'|'DENY';observed:'ALLOW'|'DENY';matched:boolean;explanation:string};
 type Session={accessToken:string;workspaceId:number;user:User};
 const api=async<T,>(path:string,token:string|undefined,options:RequestInit={}):Promise<T>=>{
@@ -32,6 +33,7 @@ export default function App(){
  const [projectDescription,setProjectDescription]=useState('');
  const [policies,setPolicies]=useState<Policy[]>([]);
  const [findings,setFindings]=useState<Finding[]>([]);
+ const [history,setHistory]=useState<EvaluationHistory[]>([]);
  const [role,setRole]=useState('USER');
  const [resource,setResource]=useState('orders:own');
  const [action,setAction]=useState('READ');
@@ -62,7 +64,12 @@ export default function App(){
   try{setPolicies(await api<Policy[]>(`/api/v1/projects/${id}/policies`,session.accessToken));}
   catch(err){setError(err instanceof Error?err.message:'Could not load policies');}
  }
- useEffect(()=>{if(session&&projectId){void loadPolicies(projectId);void loadFindings(projectId);}else{setPolicies([]);setFindings([]);}},[session,projectId]);
+ useEffect(()=>{if(session&&projectId){void loadPolicies(projectId);void loadFindings(projectId);void loadHistory(projectId);}else{setPolicies([]);setFindings([]);setHistory([]);}},[session,projectId]);
+ async function loadHistory(id:number){
+  if(!session)return;
+  try{setHistory(await api<EvaluationHistory[]>(`/api/v1/projects/${id}/policies/evaluations`,session.accessToken));}
+  catch(err){setError(err instanceof Error?err.message:'Could not load evaluation history');}
+ }
  async function loadFindings(id:number){
   if(!session)return;
   try{setFindings(await api<Finding[]>(`/api/v1/projects/${id}/findings`,session.accessToken));}
@@ -93,7 +100,7 @@ export default function App(){
   e.preventDefault();if(!session||!projectId)return;setBusy(true);setError('');setEvaluation(null);
   try{
    const result=await api<Evaluation>(`/api/v1/projects/${projectId}/policies/evaluate`,session.accessToken,{method:'POST',body:JSON.stringify({rule:{role,resource,action,expected},observed})});
-   setEvaluation(result);await loadFindings(projectId);
+   setEvaluation(result);await loadFindings(projectId);await loadHistory(projectId);
   }catch(err){setError(err instanceof Error?err.message:'Evaluation failed');}
   finally{setBusy(false);}
  }
@@ -106,6 +113,7 @@ export default function App(){
  <section className="panelBlock"><div className="blockHead"><div><h2>Projects</h2><p>Create and select a project to manage its authorization policies.</p></div></div><form className="createProject" onSubmit={createProject}><input placeholder="Project name" value={projectName} onChange={e=>setProjectName(e.target.value)} required maxLength={120}/><input placeholder="Description (optional)" value={projectDescription} onChange={e=>setProjectDescription(e.target.value)} maxLength={1000}/><button className="primary" disabled={busy}><Plus size={15}/> Add project</button></form>{projects.length===0?<p className="emptyState">No projects yet. Create your first API project above.</p>:<div className="projectList">{projects.map(p=><button key={p.id} className={projectId===p.id?'projectItem selected':'projectItem'} onClick={()=>{setProjectId(p.id);setEvaluation(null);}}><FolderKanban size={18}/><span><b>{p.name}</b><small>{p.description||'No description'}</small></span><small>#{p.id}</small></button>)}</div>}</section>
  {projectId&&<section className="twoCol"><div className="panelBlock"><div className="blockHead"><div><h2>Authorization policies</h2><p>Policies are stored against the selected project.</p></div></div><form className="policyForm" onSubmit={savePolicy}><label>Role<input value={role} onChange={e=>setRole(e.target.value)} required maxLength={80}/></label><label>Resource<input value={resource} onChange={e=>setResource(e.target.value)} required maxLength={300}/></label><label>Action<input value={action} onChange={e=>setAction(e.target.value)} required maxLength={30}/></label><label>Expected decision<select value={expected} onChange={e=>setExpected(e.target.value as 'ALLOW'|'DENY')}><option>ALLOW</option><option>DENY</option></select></label><button className="primary" disabled={busy}>Save policy</button></form><div className="policyList">{policies.map(p=><div className="policyRow" key={p.id}><span><b>{p.role}</b><small>{p.action} · {p.resource}</small></span><em className={p.expected==='ALLOW'?'allow':'deny'}>{p.expected}</em></div>)}{policies.length===0&&<p className="emptyState">No policies saved for this project.</p>}</div></div>
  <div className="panelBlock"><div className="blockHead"><div><h2>Evaluate a decision</h2><p>Compare expected and observed authorization outcomes.</p></div></div><form className="policyForm" onSubmit={runEvaluation}><label>Role<input value={role} onChange={e=>setRole(e.target.value)} required/></label><label>Resource<input value={resource} onChange={e=>setResource(e.target.value)} required/></label><label>Action<input value={action} onChange={e=>setAction(e.target.value)} required/></label><label>Observed decision<select value={observed} onChange={e=>setObserved(e.target.value as 'ALLOW'|'DENY')}><option>ALLOW</option><option>DENY</option></select></label><button className="primary" disabled={busy}>Evaluate policy</button></form>{evaluation&&<div className={evaluation.matched?'resultBox pass':'resultBox fail'}><div>{evaluation.matched?<CheckCircle2 size={20}/>:<AlertTriangle size={20}/>}<b>{evaluation.matched?'Policy matched':'Authorization mismatch'}</b></div><p>{evaluation.explanation}</p><small>Expected: {evaluation.expected} · Observed: {evaluation.observed}</small></div>}</div></section>}
+ {projectId&&<section className="panelBlock"><div className="blockHead"><div><h2>Evaluation history</h2><p>Recent authorization decisions recorded for this project.</p></div></div>{history.length===0?<p className="emptyState">No evaluations have been recorded yet.</p>:history.map(item=><div className="historyRow" key={item.id}><span className={item.matched?'historyPass':'historyFail'}>{item.matched?'MATCH':'MISMATCH'}</span><span><b>{item.role} · {item.action} {item.resource}</b><small>Expected {item.expected} · observed {item.observed}</small></span><time>{new Date(item.createdAt).toLocaleString()}</time></div>)}</section>}
  {projectId&&<section className="panelBlock"><div className="blockHead"><div><h2>Findings</h2><p>Authorization mismatches recorded from evaluations.</p></div></div>{findings.length===0?<p className="emptyState">No findings for this project. Run an evaluation with a mismatch to create one.</p>:findings.map(f=><div className="findingItem" key={f.id}><span className={`severityTag ${f.severity.toLowerCase()}`}>{f.severity}</span><span className="findingInfo"><b>{f.title}</b><small>{f.details}</small><small>Status: {f.status}</small></span><span className="findingActions">{f.status!=='ACKNOWLEDGED'&&f.status!=='RESOLVED'&&<button onClick={()=>void updateFinding(f.id,'ACKNOWLEDGED')}>Acknowledge</button>}{f.status!=='RESOLVED'&&<button onClick={()=>void updateFinding(f.id,'RESOLVED')}>Resolve</button>}</span></div>)}</section>}
  <footer>APIGUARDIAN <span>DEFENSIVE API AUTHORIZATION TESTING</span><span>v0.2 · EARLY ACCESS</span></footer></main></div>;
 }
