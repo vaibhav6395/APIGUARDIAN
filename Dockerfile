@@ -16,7 +16,7 @@ COPY backend/src ./src
 COPY --from=frontend-build /workspace/frontend/dist ./src/main/resources/static
 RUN mvn -q -DskipTests package
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 RUN apt-get update && apt-get install -y --no-install-recommends curl     && rm -rf /var/lib/apt/lists/*     && groupadd --system app && useradd --system --gid app --home-dir /app app
 WORKDIR /app
 COPY --from=backend-build /workspace/backend/target/apiguardian-api-0.2.0-SNAPSHOT.jar /app/app.jar
