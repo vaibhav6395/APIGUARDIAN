@@ -86,5 +86,6 @@ public class PolicyController {
         if(!Boolean.TRUE.equals(allowed)) throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Project not found");
     }
     public record EvaluationRequest(@Valid @NotNull PolicyRule rule,@NotNull AccessDecision observed) {}
-    public record EvaluationView(long id,String role,String resource,String action,AccessDecision expected,AccessDecision observed,boolean matched,String explanation,java.time.OffsetDateTime createdAt) {}\n    public record PolicyView(long id,long projectId,String role,String resource,String action,AccessDecision expected) {}
+    public record EvaluationView(long id,String role,String resource,String action,AccessDecision expected,AccessDecision observed,boolean matched,String explanation,java.time.OffsetDateTime createdAt) {}
+    public record PolicyView(long id,long projectId,String role,String resource,String action,AccessDecision expected) {}
 }
