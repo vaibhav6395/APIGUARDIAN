@@ -2,43 +2,93 @@
 
 **Continuous API Authorization Security Testing**
 
-APIGUARDIAN is a developer-focused platform for documenting expected API access policies and checking an explicitly authorized API environment against those policies. It is designed to help teams find authorization regressions such as users accessing resources or operations outside their assigned role.
+APIGUARDIAN is a developer-focused security workspace for defining expected API access decisions and comparing them with observed authorization behaviour. Its goal is to help teams catch object-level and function-level authorization regressions before release.
 
-> **Safety boundary:** Only test systems you own or are explicitly authorized to assess. The initial release uses a local demo API and controlled test identities. It does not scan arbitrary public targets.
+> **Responsible-use boundary:** Test only applications you own or are explicitly authorized to assess. The current release is an early foundation and UI preview. It does not scan arbitrary public targets.
 
-## Project status
+## Current implementation status
 
-This repository is being built in milestones. The initial foundation includes the product specification, architecture, security model, local demo workflow and implementation roadmap. Features are marked as implemented only after code and tests exist.
+| Component | Status |
+|---|---|
+| React + TypeScript dashboard preview | Implemented; synthetic data only |
+| Spring Boot service | Initial foundation |
+| Health endpoint | Implemented at `/api/v1/health` |
+| Deterministic policy evaluator | Implemented at `POST /api/v1/policies/evaluate` |
+| Policy evaluator unit tests | Added; not yet run in this environment |
+| CI workflow | Added; first GitHub Actions run pending |
+| Authentication and multi-tenancy | Planned |
+| OpenAPI import and endpoint inventory | Planned |
+| Authorized API test runner | Planned; local demo target first |
+| Persistent findings and run history | Planned |
+| PostgreSQL/Flyway integration | Planned |
 
-## Planned stack
+Dashboard figures and findings are illustrative examples, not measured security results. The current dashboard actions replay local UI state and do not send requests to a target API.
 
-- Backend: Java 21, Spring Boot, Maven, Spring Security, PostgreSQL, Flyway
-- Frontend: React, TypeScript, Vite
-- API contract: OpenAPI
-- Testing: JUnit 5, integration tests, GitHub Actions
-- Local development: Docker Compose
+## Technology
 
-## Quick start
+- Backend: Java 21, Spring Boot 3.4, Maven
+- Frontend: React 18, TypeScript, Vite
+- Tests: JUnit 5
+- Delivery: Dockerfiles, Docker Compose and GitHub Actions foundation
 
-The runnable application and detailed setup instructions will be added as implementation milestones land. Start with:
+## Run locally
 
-- [Architecture](docs/ARCHITECTURE.md)
+### Backend
+Prerequisites: JDK 21 and Maven 3.9+.
+
+```bash
+cd backend
+mvn test
+mvn spring-boot:run
+```
+
+Health check:
+
+```bash
+curl http://localhost:8080/api/v1/health
+```
+
+Policy evaluation example:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/policies/evaluate \
+  -H 'Content-Type: application/json' \
+  -d '{"rule":{"role":"USER","resource":"admin:settings","action":"READ","expected":"DENY"},"observed":"ALLOW"}'
+```
+
+### Frontend
+Prerequisites: Node.js 20+.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:5173.
+
+## Documentation
+
 - [Product requirements](docs/PRODUCT-REQUIREMENTS.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [API design](docs/API-DESIGN.md)
 - [Threat model](docs/THREAT-MODEL.md)
-- [Security and safe-use policy](docs/SECURITY.md)
+- [Security and responsible use](docs/SECURITY.md)
+- [Development guide](docs/DEVELOPMENT.md)
 - [Roadmap](docs/ROADMAP.md)
 
-## Core workflow
+## Next milestones
 
-1. Create a workspace and project.
-2. Import an OpenAPI document for an API you control.
-3. Define roles, endpoints and expected allow/deny outcomes.
-4. Run controlled tests against the configured local or authorized test environment.
-5. Review evidence-backed findings and compare subsequent runs.
+1. Add authentication and tenant-scoped workspaces.
+2. Add persistent projects, endpoint inventory and policy storage.
+3. Add OpenAPI parsing with strict upload limits.
+4. Build an isolated local demo API with synthetic identities and owner-scoped records.
+5. Implement a bounded test runner that targets only the bundled demo by default.
+6. Persist runs, evidence and findings; add regression comparison and report export.
 
 ## Non-goals
 
-APIGUARDIAN is not an exploit framework, internet-wide scanner, credential harvesting tool or substitute for a professional penetration test. It validates documented authorization expectations in a controlled environment.
+APIGUARDIAN is not an exploit framework, internet-wide scanner, credential harvesting tool or substitute for a professional penetration test. Automated findings require human review.
 
 ## License
 
