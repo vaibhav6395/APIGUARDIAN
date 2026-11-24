@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: apiguardian
       POSTGRES_USER: apiguardian
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-local_dev_password_change_me}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
