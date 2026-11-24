@@ -30,10 +30,33 @@ class AuthAndTenantIntegrationTest {
   String ownerToken=owner.get("accessToken").asText();
   long workspaceId=owner.get("workspaceId").asLong();
 
-  mvc.perform(post("/api/v1/workspaces/"+workspaceId+"/projects")
+  String projectJson=mvc.perform(post("/api/v1/workspaces/"+workspaceId+"/projects")
     .header("Authorization","Bearer "+ownerToken).contentType(MediaType.APPLICATION_JSON)
     .content("{\"name\":\"Payments API\",\"description\":\"Synthetic test project\"}"))
-    .andExpect(status().isCreated()).andExpect(jsonPath("$.name").value("Payments API"));
+    .andExpect(status().isCreated()).andExpect(jsonPath("$.name").value("Payments API"))
+    .andReturn().getResponse().getContentAsString();
+  long projectId=mapper.readTree(projectJson).get("id").asLong();
+
+  mvc.perform(post("/api/v1/projects/"+projectId+"/policies")
+    .header("Authorization","Bearer "+ownerToken).contentType(MediaType.APPLICATION_JSON)
+    .content("{\"role\":\"USER\",\"resource\":\"admin:settings\",\"action\":\"READ\",\"expected\":\"DENY\"}"))
+    .andExpect(status().isCreated()).andExpect(jsonPath("$.expected").value("DENY"));
+
+  mvc.perform(post("/api/v1/projects/"+projectId+"/policies/evaluate")
+    .header("Authorization","Bearer "+ownerToken).contentType(MediaType.APPLICATION_JSON)
+    .content("{\"rule\":{\"role\":\"USER\",\"resource\":\"admin:settings\",\"action\":\"READ\",\"expected\":\"DENY\"},\"observed\":\"ALLOW\"}"))
+    .andExpect(status().isOk()).andExpect(jsonPath("$.matched").value(false));
+
+  String findingsJson=mvc.perform(get("/api/v1/projects/"+projectId+"/findings")
+    .header("Authorization","Bearer "+ownerToken))
+    .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+    .andExpect(jsonPath("$[0].severity").value("CRITICAL"))
+    .andReturn().getResponse().getContentAsString();
+  long findingId=mapper.readTree(findingsJson).get(0).get("id").asLong();
+  mvc.perform(patch("/api/v1/projects/"+projectId+"/findings/"+findingId)
+    .header("Authorization","Bearer "+ownerToken).contentType(MediaType.APPLICATION_JSON)
+    .content("{\"status\":\"RESOLVED\"}"))
+    .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RESOLVED"));
 
   String login=mapper.writeValueAsString(java.util.Map.of("email",email,"password","A-Strong-Test-Password-2026"));
   mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(login))
