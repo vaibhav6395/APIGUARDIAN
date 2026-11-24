@@ -3,7 +3,7 @@
 ## Prerequisites
 - Java 21
 - Maven 3.9+
-- Node.js 20+
+- Node.js 22.12+
 - Docker Engine and Docker Compose v2
 
 ## Local environment
