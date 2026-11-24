@@ -33,7 +33,7 @@ public class FindingController {
         @AuthenticationPrincipal Jwt jwt,@Valid @RequestBody UpdateFinding body){
         requireAccess(projectId,uid(jwt));
         int changed=jdbc.update("UPDATE findings SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND project_id=?",
-            body.status(),findingId,projectId);
+            body.status().name(),findingId,projectId);
         if(changed==0) throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Finding not found");
         return jdbc.queryForObject("""
             SELECT id,project_id,evaluation_id,title,severity,status,details,created_at,updated_at
