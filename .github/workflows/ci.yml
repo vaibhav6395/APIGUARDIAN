@@ -43,6 +43,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.18.0'
+      - name: Update npm installer
+        run: npm install --global npm@11.21.3
       - name: Install dependencies
         working-directory: frontend
         run: npm install
