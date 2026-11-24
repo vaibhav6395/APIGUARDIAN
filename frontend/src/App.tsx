@@ -30,7 +30,8 @@ export default function App(){
  const [projectId,setProjectId]=useState<number|null>(null);
  const [projectName,setProjectName]=useState('');
  const [projectDescription,setProjectDescription]=useState('');
- const [policies,setPolicies]=useState<Policy[]>([]);\n const [findings,setFindings]=useState<Finding[]>([]);
+ const [policies,setPolicies]=useState<Policy[]>([]);
+ const [findings,setFindings]=useState<Finding[]>([]);
  const [role,setRole]=useState('USER');
  const [resource,setResource]=useState('orders:own');
  const [action,setAction]=useState('READ');
