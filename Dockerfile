@@ -8,7 +8,7 @@ RUN npm install
 COPY frontend/ ./
 RUN npm run build
 
-FROM maven:3.9-eclipse-temurin-21 AS backend-build
+FROM maven:3.9-eclipse-temurin-26 AS backend-build
 WORKDIR /workspace/backend
 COPY backend/pom.xml ./
 RUN mvn -q -DskipTests dependency:go-offline
