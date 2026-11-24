@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { api } from './api';
 import { ShieldCheck, LogOut, Plus, RefreshCw, FolderKanban, KeyRound, Activity, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 type User={id:number;email:string;displayName:string};
@@ -9,15 +10,6 @@ type RunSummary={id:number;totalTests:number;passedTests:number;failedTests:numb
 type EvaluationHistory={id:number;role:string;resource:string;action:string;expected:'ALLOW'|'DENY';observed:'ALLOW'|'DENY';matched:boolean;explanation:string;createdAt:string};
 type Evaluation={role:string;resource:string;action:string;expected:'ALLOW'|'DENY';observed:'ALLOW'|'DENY';matched:boolean;explanation:string};
 type Session={accessToken:string;workspaceId:number;user:User};
-const api=async<T,>(path:string,token:string|undefined,options:RequestInit={}):Promise<T>=>{
- const headers=new Headers(options.headers);
- headers.set('Content-Type','application/json');
- if(token) headers.set('Authorization',`Bearer ${token}`);
- const response=await fetch(path,{...options,headers});
- const data=await response.json().catch(()=>({message:'Unexpected server response'}));
- if(!response.ok) throw new Error(data.message||data.error||`Request failed (${response.status})`);
- return data as T;
-};
 export default function App(){
  const [session,setSession]=useState<Session|null>(null);
  const [register,setRegister]=useState(false);
