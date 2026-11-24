@@ -1,18 +1,43 @@
-# API design (planned contract)
+# API design
 
-Base path: `/api/v1`
+Base path: `/api/v1`. JSON request/response bodies. Authenticated endpoints require a signed JWT in the Authorization bearer header.
+
+## Authentication
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | /health | Service health |
-| GET | /projects | List projects visible to caller |
-| POST | /projects | Create a project |
-| POST | /projects/{id}/specifications | Import an OpenAPI document |
-| GET | /projects/{id}/endpoints | List normalized endpoints |
-| POST | /projects/{id}/policies | Create/update expected authorization policy |
-| POST | /projects/{id}/runs | Start bounded authorized test run |
-| GET | /projects/{id}/runs | List run history |
-| GET | /findings | List findings visible to caller |
-| PATCH | /findings/{id} | Update finding status/assignee |
+| POST | /auth/register | Create user, workspace and owner membership |
+| POST | /auth/login | Verify credentials and issue access token |
 
-All project-scoped operations must verify organization membership and project access server-side. Request and response schemas will be published through generated OpenAPI documentation as endpoints are implemented.
+Registration password minimum: 12 characters. Passwords are BCrypt-hashed. Access tokens are signed HS256 JWTs and include issuer and expiry claims.
+
+## Workspaces and projects
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | /workspaces/{workspaceId}/projects | List projects for a workspace the caller belongs to |
+| POST | /workspaces/{workspaceId}/projects | Create a project in a workspace the caller belongs to |
+
+Workspace membership is verified server-side on every request. Unknown or inaccessible workspace/project identifiers return 404 to avoid confirming their existence.
+
+## Policies, evaluations and findings
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | /projects/{projectId}/policies | List saved authorization policies |
+| POST | /projects/{projectId}/policies | Create or update an expected access decision |
+| POST | /projects/{projectId}/policies/evaluate | Compare expected and caller-supplied observed decision; persist evaluation |
+| GET | /projects/{projectId}/findings | List project findings |
+| PATCH | /projects/{projectId}/findings/{findingId} | Update finding status to OPEN, ACKNOWLEDGED or RESOLVED |
+
+An unexpected ALLOW where DENY was expected is classified CRITICAL in this initial rule set. Unexpected DENY is classified MEDIUM. Severity policy will be configurable in a later milestone.
+
+## System
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | /health | Public service health |
+
+## Important limitation
+
+The current evaluation endpoint compares an observed decision supplied by the authenticated caller. It does not independently call a target API. Automated target execution and OpenAPI import are future milestones; no arbitrary target URL is accepted by the current API.
