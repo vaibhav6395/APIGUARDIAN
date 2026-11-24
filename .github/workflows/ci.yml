@@ -68,6 +68,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate Compose configuration
         run: docker compose config --quiet
+      - name: Build provider-neutral hosting image
+        run: docker build --tag apiguardian:ci .
       - name: Build and start deployment stack
         run: docker compose up --build -d
       - name: Wait for web health endpoint
