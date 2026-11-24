@@ -40,7 +40,7 @@ APIGUARDIAN is a defensive security workspace for teams that need to document ex
 
 The root `Dockerfile` builds a single image containing the React frontend and Spring Boot API. Deploy it as one Docker web service and connect it to a managed PostgreSQL database. The app honors the host-provided `PORT` and supports an external JDBC database URL. See [Hosting platform preparation](docs/HOSTING-PLATFORM-READY.md). No hosting provider is selected or deployed automatically.
 
-## Run with Docker Compose
+## Hosting-platform preparation\n\nThe root `Dockerfile` builds a single image containing the React frontend and Spring Boot API. Deploy it as one Docker web service and connect it to a managed PostgreSQL database. The app honors the host-provided `PORT` and supports an external JDBC database URL. See [Hosting platform preparation](docs/HOSTING-PLATFORM-READY.md). No hosting provider is selected or deployed automatically.\n\n## Run with Docker Compose
 
 Prerequisites: Docker Engine and Docker Compose v2.
 
@@ -103,7 +103,7 @@ Protected routes require `Authorization: Bearer <access-token>`. Workspace and p
 - [Security policy](docs/SECURITY.md)
 - [Security test plan](docs/SECURITY-TEST-PLAN.md)
 - [Development guide](docs/DEVELOPMENT.md)
-- [Deployment guide](docs/DEPLOYMENT.md)
+- [Deployment guide](docs/DEPLOYMENT.md)\n- [Hosting-platform preparation](docs/HOSTING-PLATFORM-READY.md)
 - [Hosting-platform preparation](docs/HOSTING-PLATFORM-READY.md)
 - [Roadmap](docs/ROADMAP.md)
 
