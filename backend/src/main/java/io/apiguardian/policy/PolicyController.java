@@ -25,6 +25,18 @@ public class PolicyController {
                 rs.getString("resource"),rs.getString("action"),AccessDecision.valueOf(rs.getString("expected_decision"))),projectId);
     }
 
+    @GetMapping("/evaluations")
+    public List<EvaluationView> evaluations(@PathVariable long projectId,@AuthenticationPrincipal Jwt jwt) {
+        requireProjectAccess(projectId,userId(jwt));
+        return jdbc.query("""
+            SELECT id,role_name,resource,action,expected_decision,observed_decision,matched,explanation,created_at
+            FROM policy_evaluations WHERE project_id=? ORDER BY created_at DESC LIMIT 100
+            """,(rs,n)->new EvaluationView(rs.getLong("id"),rs.getString("role_name"),rs.getString("resource"),
+            rs.getString("action"),AccessDecision.valueOf(rs.getString("expected_decision")),
+            AccessDecision.valueOf(rs.getString("observed_decision")),rs.getBoolean("matched"),
+            rs.getString("explanation"),rs.getObject("created_at",java.time.OffsetDateTime.class)),projectId);
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PolicyView save(@PathVariable long projectId, @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody PolicyRule rule) {
@@ -74,5 +86,5 @@ public class PolicyController {
         if(!Boolean.TRUE.equals(allowed)) throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Project not found");
     }
     public record EvaluationRequest(@Valid @NotNull PolicyRule rule,@NotNull AccessDecision observed) {}
-    public record PolicyView(long id,long projectId,String role,String resource,String action,AccessDecision expected) {}
+    public record EvaluationView(long id,String role,String resource,String action,AccessDecision expected,AccessDecision observed,boolean matched,String explanation,java.time.OffsetDateTime createdAt) {}\n    public record PolicyView(long id,long projectId,String role,String resource,String action,AccessDecision expected) {}
 }
