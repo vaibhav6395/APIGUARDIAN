@@ -1,22 +1,98 @@
-import { useState } from 'react';
-import { ShieldCheck, Activity, KeyRound, Network, FileSearch, Settings, Bell, Search, ArrowUpRight, AlertTriangle, CheckCircle2, CircleDot } from 'lucide-react';
-type Finding={id:string;title:string;endpoint:string;severity:'Critical'|'High'|'Medium';status:string;detail:string};
-const seed:Finding[]=[
-{id:'AG-1042',title:'Unexpected access grant',endpoint:'GET /api/v1/admin/settings',severity:'Critical',status:'Open',detail:'USER was expected to be denied but the synthetic evaluation observed ALLOW.'},
-{id:'AG-1038',title:'Owner policy needs negative test',endpoint:'GET /api/v1/orders/{id}',severity:'High',status:'Investigating',detail:'Add a second synthetic user to verify that an order cannot be read by a non-owner.'},
-{id:'AG-1031',title:'Missing authorization expectation',endpoint:'PATCH /api/v1/users/{id}',severity:'Medium',status:'Open',detail:'No explicit role decision has been recorded for this operation.'}
-];
+import { FormEvent, useEffect, useState } from 'react';
+import { ShieldCheck, LogOut, Plus, RefreshCw, FolderKanban, KeyRound, Activity, AlertTriangle, CheckCircle2 } from 'lucide-react';
+
+type User={id:number;email:string;displayName:string};
+type Project={id:number;workspaceId:number;name:string;description:string|null;createdAt:string;updatedAt:string};
+type Policy={id:number;projectId:number;role:string;resource:string;action:string;expected:'ALLOW'|'DENY'};
+type Evaluation={role:string;resource:string;action:string;expected:'ALLOW'|'DENY';observed:'ALLOW'|'DENY';matched:boolean;explanation:string};
+type Session={accessToken:string;workspaceId:number;user:User};
+const api=async<T,>(path:string,token:string|undefined,options:RequestInit={}):Promise<T>=>{
+ const headers=new Headers(options.headers);
+ headers.set('Content-Type','application/json');
+ if(token) headers.set('Authorization',`Bearer ${token}`);
+ const response=await fetch(path,{...options,headers});
+ const data=await response.json().catch(()=>({message:'Unexpected server response'}));
+ if(!response.ok) throw new Error(data.message||data.error||`Request failed (${response.status})`);
+ return data as T;
+};
 export default function App(){
-const [tab,setTab]=useState('Overview'),[findings,setFindings]=useState(seed),[selected,setSelected]=useState<Finding|null>(null),[ran,setRan]=useState(false);
-const nav=[{name:'Overview',icon:Activity},{name:'API Inventory',icon:Network},{name:'Policy Testing',icon:KeyRound},{name:'Findings',icon:FileSearch},{name:'Settings',icon:Settings}];
-function runDemo(){setRan(true);setFindings(seed);}
-return <div className="shell"><aside className="sidebar"><div className="brand"><div className="brandIcon"><ShieldCheck size={22}/></div><div><b>API<span>GUARDIAN</span></b><small>AUTHORIZATION SECURITY</small></div></div><div className="workspace"><small>WORKSPACE</small><b>Demo Organization</b><span>Local synthetic workspace</span></div><div className="navLabel">SECURITY CONSOLE</div>{nav.map(n=><button key={n.name} className={tab===n.name?'nav active':'nav'} onClick={()=>setTab(n.name)}><n.icon size={17}/>{n.name}{n.name==='Findings'&&<em>{findings.length}</em>}</button>)}<div className="sidebarBottom"><div className="avatar">DG</div><div><b>Demo Guardian</b><small>Security Engineer</small></div><Settings size={16}/></div></aside>
-<main className="main"><header><div><div className="eyebrow">SECURITY WORKSPACE / {tab.toUpperCase()}</div><h1>{tab==='Overview'?'Authorization overview':tab}</h1><p>Monitor expected access policies and authorization behaviour.</p></div><div className="headerActions"><button className="iconButton"><Search size={17}/></button><button className="iconButton"><Bell size={17}/></button><span className="env">LOCAL DEMO</span></div></header>
-{tab==='Overview'&&<><section className="welcome"><div><span className="pill"><span className="pulse"/> SYNTHETIC DEMO DATA</span><h2>Make authorization visible.<br/><span>Catch regressions early.</span></h2><p>Validate what each role can access, compare observed behaviour with expected policy, and give developers evidence they can act on.</p><button className="primary" onClick={runDemo}>Run demo policy checks <ArrowUpRight size={16}/></button></div><div className="orb"><ShieldCheck size={78}/><div className="orbTag">POLICY ENGINE <b>PREVIEW</b></div></div></section><section className="metrics"><Metric label="Policies in demo" value="24" delta="Illustrative policy set"/><Metric label="Demo findings" value={String(findings.length)} delta="Synthetic examples"/><Metric label="Latest test run" value={ran?'Just now':'Not run'} delta={ran?'Local UI simulation':'Run the demo checks'}/><Metric label="Policy match rate" value="—" delta="No measured run yet"/></section><section className="contentGrid"><div className="panel"><div className="panelHead"><div><h3>Example authorization findings</h3><p>Synthetic examples for product walkthrough</p></div><button className="textButton" onClick={()=>setTab('Findings')}>View all <ArrowUpRight size={14}/></button></div>{findings.map(f=><button className="findingRow" key={f.id} onClick={()=>setSelected(f)}><span className={'severity '+f.severity.toLowerCase()}><CircleDot size={13}/>{f.severity}</span><span className="findingText"><b>{f.title}</b><small>{f.endpoint}</small></span><span className="findingId">{f.id}</span></button>)}</div><div className="panel"><div className="panelHead"><div><h3>Workspace activity</h3><p>Illustrative local walkthrough</p></div><Activity size={18}/></div><div className="activity"><div className="activityIcon"><CheckCircle2/></div><div><b>Example policy baseline loaded</b><small>24 synthetic access decisions</small></div><time>Demo</time></div><div className="activity"><div className="activityIcon warn"><AlertTriangle/></div><div><b>Example authorization mismatch</b><small>Admin settings · USER role</small></div><time>Demo</time></div><button className="secondary full" onClick={runDemo}>Replay UI walkthrough</button></div></section></>}
-{tab==='API Inventory'&&<section className="panel"><div className="panelHead"><div><h3>API endpoint inventory</h3><p>Illustrative endpoints; no target has been scanned.</p></div></div>{['GET /api/v1/profile','GET /api/v1/orders/{id}','GET /api/v1/admin/settings','PATCH /api/v1/users/{id}'].map((e,i)=><div className="endpoint" key={e}><span className="method">{i===3?'PATCH':'GET'}</span><code>{e}</code><span className="muted">{i===2?'Admin only':'Policy example'}</span></div>)}</section>}
-{tab==='Policy Testing'&&<section className="panel"><div className="panelHead"><div><h3>Authorization policy examples</h3><p>This control replays synthetic UI examples; it does not send API requests.</p></div></div><div className="policy"><b>USER → GET /api/v1/profile</b><span className="allow">Expected: ALLOW</span></div><div className="policy"><b>USER → GET /api/v1/admin/settings</b><span className="deny">Expected: DENY</span></div><div className="policy"><b>ADMIN → GET /api/v1/admin/settings</b><span className="allow">Expected: ALLOW</span></div><button className="primary" onClick={runDemo}>Replay synthetic walkthrough</button>{ran&&<p className="successText">UI walkthrough replayed. No external system was contacted.</p>}</section>}
-{tab==='Findings'&&<section className="panel"><div className="panelHead"><div><h3>Example findings</h3><p>Select an item to inspect its illustrative evidence.</p></div></div>{findings.map(f=><button className="findingRow" key={f.id} onClick={()=>setSelected(f)}><span className={'severity '+f.severity.toLowerCase()}>{f.severity}</span><span className="findingText"><b>{f.title}</b><small>{f.endpoint}</small></span><span className="findingId">{f.status}</span></button>)}</section>}
-{tab==='Settings'&&<section className="panel"><h3>Workspace settings</h3><p className="muted">This is a frontend preview. Authentication, persistent workspaces and integrations are not implemented yet.</p><div className="policy"><b>Execution mode</b><span className="allow">Synthetic UI demo</span></div><div className="policy"><b>External targets</b><span className="deny">Disabled</span></div></section>}
-<footer>APIGUARDIAN <span>DEFENSIVE API AUTHORIZATION TESTING</span><span>v0.1.0 · UI PREVIEW</span></footer></main>
-{selected&&<div className="modalBackdrop" onClick={()=>setSelected(null)}><section className="modal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setSelected(null)}>×</button><span className={'severity '+selected.severity.toLowerCase()}>{selected.severity}</span><h2>{selected.title}</h2><code>{selected.endpoint}</code><p>{selected.detail}</p><div className="policy"><b>Example finding ID</b><span>{selected.id}</span></div><div className="policy"><b>Status</b><span>{selected.status}</span></div><p className="muted">Suggested workflow: confirm the intended policy with the API owner, reproduce in an authorized test environment, record remediation and rerun the regression test.</p></section></div>}</div>}
-function Metric({label,value,delta}:{label:string,value:string,delta:string}){return <div className="metric"><small>{label}</small><strong>{value}</strong><span>{delta}</span></div>}
+ const [session,setSession]=useState<Session|null>(null);
+ const [register,setRegister]=useState(false);
+ const [busy,setBusy]=useState(false);
+ const [error,setError]=useState('');
+ const [notice,setNotice]=useState('');
+ const [email,setEmail]=useState('');
+ const [password,setPassword]=useState('');
+ const [displayName,setDisplayName]=useState('');
+ const [workspaceName,setWorkspaceName]=useState('');
+ const [projects,setProjects]=useState<Project[]>([]);
+ const [projectId,setProjectId]=useState<number|null>(null);
+ const [projectName,setProjectName]=useState('');
+ const [projectDescription,setProjectDescription]=useState('');
+ const [policies,setPolicies]=useState<Policy[]>([]);
+ const [role,setRole]=useState('USER');
+ const [resource,setResource]=useState('orders:own');
+ const [action,setAction]=useState('READ');
+ const [expected,setExpected]=useState<'ALLOW'|'DENY'>('ALLOW');
+ const [observed,setObserved]=useState<'ALLOW'|'DENY'>('ALLOW');
+ const [evaluation,setEvaluation]=useState<Evaluation|null>(null);
+
+ async function authenticate(e:FormEvent){
+  e.preventDefault();setBusy(true);setError('');
+  try{
+   const body=register?{email,password,displayName,workspaceName}:{email,password};
+   const result=await api<Omit<Session,'user'>&{user:User}>('/api/v1/auth/'+(register?'register':'login'),undefined,{method:'POST',body:JSON.stringify(body)});
+   setSession(result);setNotice(register?'Workspace created successfully.':'Signed in successfully.');
+   setPassword('');
+  }catch(err){setError(err instanceof Error?err.message:'Authentication failed');}
+  finally{setBusy(false);}
+ }
+ async function loadProjects(){
+  if(!session)return;
+  try{
+   const list=await api<Project[]>(`/api/v1/workspaces/${session.workspaceId}/projects`,session.accessToken);
+   setProjects(list);setProjectId(current=>current&&list.some(p=>p.id===current)?current:(list[0]?.id??null));
+  }catch(err){setError(err instanceof Error?err.message:'Could not load projects');}
+ }
+ useEffect(()=>{if(session)void loadProjects();},[session]);
+ async function loadPolicies(id:number){
+  if(!session)return;
+  try{setPolicies(await api<Policy[]>(`/api/v1/projects/${id}/policies`,session.accessToken));}
+  catch(err){setError(err instanceof Error?err.message:'Could not load policies');}
+ }
+ useEffect(()=>{if(session&&projectId)void loadPolicies(projectId);else setPolicies([]);},[session,projectId]);
+ async function createProject(e:FormEvent){
+  e.preventDefault();if(!session)return;setBusy(true);setError('');
+  try{
+   const project=await api<Project>(`/api/v1/workspaces/${session.workspaceId}/projects`,session.accessToken,{method:'POST',body:JSON.stringify({name:projectName,description:projectDescription})});
+   setProjects(current=>[project,...current]);setProjectId(project.id);setProjectName('');setProjectDescription('');setNotice('Project created.');
+  }catch(err){setError(err instanceof Error?err.message:'Could not create project');}
+  finally{setBusy(false);}
+ }
+ async function savePolicy(e:FormEvent){
+  e.preventDefault();if(!session||!projectId)return;setBusy(true);setError('');
+  try{
+   await api<Policy>(`/api/v1/projects/${projectId}/policies`,session.accessToken,{method:'POST',body:JSON.stringify({role,resource,action,expected})});
+   await loadPolicies(projectId);setNotice('Authorization policy saved.');
+  }catch(err){setError(err instanceof Error?err.message:'Could not save policy');}
+  finally{setBusy(false);}
+ }
+ async function runEvaluation(e:FormEvent){
+  e.preventDefault();if(!session||!projectId)return;setBusy(true);setError('');setEvaluation(null);
+  try{
+   const result=await api<Evaluation>(`/api/v1/projects/${projectId}/policies/evaluate`,session.accessToken,{method:'POST',body:JSON.stringify({rule:{role,resource,action,expected},observed})});
+   setEvaluation(result);
+  }catch(err){setError(err instanceof Error?err.message:'Evaluation failed');}
+  finally{setBusy(false);}
+ }
+ if(!session)return <main className="authPage"><div className="authCard"><div className="authBrand"><ShieldCheck size={30}/><div><b>APIGUARDIAN</b><small>API AUTHORIZATION SECURITY</small></div></div><span className="eyebrow">DEFENSIVE SECURITY WORKSPACE</span><h1>{register?'Create your workspace':'Welcome back'}</h1><p className="authLead">Define access expectations and verify authorization decisions in a controlled environment.</p>{error&&<div className="alert error"><AlertTriangle size={16}/>{error}</div>}<form onSubmit={authenticate} className="authForm"><label>Email address<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required maxLength={254} autoComplete="email"/></label><label>Password<input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={register?12:1} maxLength={72} autoComplete={register?'new-password':'current-password'}/>{register&&<small>Use at least 12 characters.</small>}</label>{register&&<><label>Your name<input value={displayName} onChange={e=>setDisplayName(e.target.value)} required maxLength={100}/></label><label>Workspace name<input value={workspaceName} onChange={e=>setWorkspaceName(e.target.value)} required maxLength={120}/></label></>}<button className="primary authSubmit" disabled={busy}>{busy?'Please wait…':register?'Create workspace':'Sign in'}</button></form><p className="switchAuth">{register?'Already have an account?':'New to APIGUARDIAN?'} <button onClick={()=>{setRegister(!register);setError('');}}> {register?'Sign in':'Create an account'}</button></p><p className="authFoot">Only assess APIs you own or have explicit permission to test.</p></div></main>;
+ return <div className="appShell"><aside className="appSide"><div className="authBrand"><ShieldCheck size={28}/><div><b>APIGUARDIAN</b><small>AUTHORIZATION SECURITY</small></div></div><div className="sideWorkspace"><small>WORKSPACE</small><b>{session.user.displayName}</b><span>{session.user.email}</span></div><div className="sideLabel">CONSOLE</div><div className="sideNav active"><Activity size={17}/> Overview</div><div className="sideNav"><FolderKanban size={17}/> Projects</div><div className="sideNav"><KeyRound size={17}/> Policy testing</div><div className="sideBottom"><span className="statusDot"/> Authenticated session<button title="Sign out" onClick={()=>{setSession(null);setProjects([]);setPolicies([]);setProjectId(null);}}><LogOut size={16}/></button></div></aside>
+ <main className="appMain"><header className="appHeader"><div><div className="eyebrow">SECURITY WORKSPACE / OVERVIEW</div><h1>Authorization workspace</h1><p>Manage projects and evaluate expected access decisions.</p></div><div className="headerRight"><span className="env">AUTHENTICATED</span><button className="iconButton" onClick={()=>void loadProjects()} title="Refresh projects"><RefreshCw size={17}/></button></div></header>
+ {error&&<div className="alert error"><AlertTriangle size={16}/>{error}</div>}{notice&&<div className="alert success"><CheckCircle2 size={16}/>{notice}<button onClick={()=>setNotice('')}>×</button></div>}
+ <section className="heroPanel"><div><span className="pill">SECURE WORKSPACE</span><h2>Make authorization<br/><span>measurable.</span></h2><p>Record the access each role should have, then compare it with an observed decision. Start with an API project you are authorized to assess.</p></div><div className="heroIcon"><ShieldCheck size={66}/></div></section>
+ <section className="statGrid"><div className="statCard"><small>Projects</small><strong>{projects.length}</strong><span>In your workspace</span></div><div className="statCard"><small>Policies</small><strong>{policies.length}</strong><span>For selected project</span></div><div className="statCard"><small>Evaluation</small><strong>{evaluation?(evaluation.matched?'PASS':'MISMATCH'):'—'}</strong><span>Latest in this session</span></div></section>
+ <section className="panelBlock"><div className="blockHead"><div><h2>Projects</h2><p>Create and select a project to manage its authorization policies.</p></div></div><form className="createProject" onSubmit={createProject}><input placeholder="Project name" value={projectName} onChange={e=>setProjectName(e.target.value)} required maxLength={120}/><input placeholder="Description (optional)" value={projectDescription} onChange={e=>setProjectDescription(e.target.value)} maxLength={1000}/><button className="primary" disabled={busy}><Plus size={15}/> Add project</button></form>{projects.length===0?<p className="emptyState">No projects yet. Create your first API project above.</p>:<div className="projectList">{projects.map(p=><button key={p.id} className={projectId===p.id?'projectItem selected':'projectItem'} onClick={()=>{setProjectId(p.id);setEvaluation(null);}}><FolderKanban size={18}/><span><b>{p.name}</b><small>{p.description||'No description'}</small></span><small>#{p.id}</small></button>)}</div>}</section>
+ {projectId&&<section className="twoCol"><div className="panelBlock"><div className="blockHead"><div><h2>Authorization policies</h2><p>Policies are stored against the selected project.</p></div></div><form className="policyForm" onSubmit={savePolicy}><label>Role<input value={role} onChange={e=>setRole(e.target.value)} required maxLength={80}/></label><label>Resource<input value={resource} onChange={e=>setResource(e.target.value)} required maxLength={300}/></label><label>Action<input value={action} onChange={e=>setAction(e.target.value)} required maxLength={30}/></label><label>Expected decision<select value={expected} onChange={e=>setExpected(e.target.value as 'ALLOW'|'DENY')}><option>ALLOW</option><option>DENY</option></select></label><button className="primary" disabled={busy}>Save policy</button></form><div className="policyList">{policies.map(p=><div className="policyRow" key={p.id}><span><b>{p.role}</b><small>{p.action} · {p.resource}</small></span><em className={p.expected==='ALLOW'?'allow':'deny'}>{p.expected}</em></div>)}{policies.length===0&&<p className="emptyState">No policies saved for this project.</p>}</div></div>
+ <div className="panelBlock"><div className="blockHead"><div><h2>Evaluate a decision</h2><p>Compare expected and observed authorization outcomes.</p></div></div><form className="policyForm" onSubmit={runEvaluation}><label>Role<input value={role} onChange={e=>setRole(e.target.value)} required/></label><label>Resource<input value={resource} onChange={e=>setResource(e.target.value)} required/></label><label>Action<input value={action} onChange={e=>setAction(e.target.value)} required/></label><label>Observed decision<select value={observed} onChange={e=>setObserved(e.target.value as 'ALLOW'|'DENY')}><option>ALLOW</option><option>DENY</option></select></label><button className="primary" disabled={busy}>Evaluate policy</button></form>{evaluation&&<div className={evaluation.matched?'resultBox pass':'resultBox fail'}><div>{evaluation.matched?<CheckCircle2 size={20}/>:<AlertTriangle size={20}/>}<b>{evaluation.matched?'Policy matched':'Authorization mismatch'}</b></div><p>{evaluation.explanation}</p><small>Expected: {evaluation.expected} · Observed: {evaluation.observed}</small></div>}</div></section>}
+ <footer>APIGUARDIAN <span>DEFENSIVE API AUTHORIZATION TESTING</span><span>v0.2 · EARLY ACCESS</span></footer></main></div>;
+}
