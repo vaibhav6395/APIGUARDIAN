@@ -26,6 +26,7 @@ public class SecurityConfig {
     @Bean PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(12); }
 
     @Bean JwtEncoder jwtEncoder(@Value("${security.jwt.secret}") String secret) {
+        if (secret == null || secret.length() < 32) throw new IllegalStateException("JWT_SECRET must contain at least 32 characters");
         var key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         var jwk = new OctetSequenceKey.Builder(key).algorithm(com.nimbusds.jose.JWSAlgorithm.HS256)
             .keyID("apiguardian-hs256").build();
@@ -44,7 +45,7 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(a -> a
-                .requestMatchers("/api/v1/health", "/actuator/health", "/api/v1/auth/**").permitAll()
+                .requestMatchers("/", "/index.html", "/assets/**", "/favicon.ico", "/healthz", "/api/v1/health", "/actuator/health/**", "/api/v1/auth/**").permitAll()
                 .anyRequest().authenticated())
             .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()))
             .build();
