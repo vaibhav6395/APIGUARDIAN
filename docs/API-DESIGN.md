@@ -20,7 +20,7 @@ Registration password minimum: 12 characters. Passwords are BCrypt-hashed. Acces
 
 Workspace membership is verified server-side on every request. Unknown or inaccessible workspace/project identifiers return 404 to avoid confirming their existence.
 
-## Policies, evaluations and findings
+## Policies, evaluations, demo runs and findings
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -28,6 +28,8 @@ Workspace membership is verified server-side on every request. Unknown or inacce
 | POST | /projects/{projectId}/policies | Create or update an expected access decision |
 | POST | /projects/{projectId}/policies/evaluate | Compare expected and caller-supplied observed decision; persist evaluation |
 | GET | /projects/{projectId}/policies/evaluations | List the latest 100 persisted evaluations |
+| POST | /projects/{projectId}/runs/demo | Execute bounded synthetic authorization cases against the bundled local demo model |
+| GET | /projects/{projectId}/runs | List the latest 100 demo runs and pass/fail totals |
 | GET | /projects/{projectId}/findings | List project findings |
 | PATCH | /projects/{projectId}/findings/{findingId} | Update finding status to OPEN, ACKNOWLEDGED or RESOLVED |
 
@@ -41,4 +43,4 @@ An unexpected ALLOW where DENY was expected is classified CRITICAL in this initi
 
 ## Important limitation
 
-The current evaluation endpoint compares an observed decision supplied by the authenticated caller. It does not independently call a target API. Automated target execution and OpenAPI import are future milestones; no arbitrary target URL is accepted by the current API.
+The current evaluation endpoint compares an observed decision supplied by the authenticated caller. It does not independently call a customer target API. The bundled demo runner evaluates saved policies against a fixed local synthetic authorization model; it does not scan external hosts or make network requests to customer systems. OpenAPI import and authorized target integrations remain future milestones; no arbitrary target URL is accepted by the current API.
