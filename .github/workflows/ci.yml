@@ -28,7 +28,7 @@ jobs:
       JWT_SECRET: ci-only-test-secret-not-used-in-production-1234567890
       JWT_ISSUER: apiguardian-ci
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -39,7 +39,7 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: '22.18.0'
@@ -65,7 +65,7 @@ jobs:
       JWT_SECRET: ci-container-only-signing-secret-0123456789abcdef
       WEB_PORT: 8088
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Validate Compose configuration
         run: docker compose config --quiet
       - name: Build provider-neutral hosting image
