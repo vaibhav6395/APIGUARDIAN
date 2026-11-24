@@ -42,6 +42,11 @@ class AuthAndTenantIntegrationTest {
     .content("{\"role\":\"USER\",\"resource\":\"admin:settings\",\"action\":\"READ\",\"expected\":\"DENY\"}"))
     .andExpect(status().isCreated()).andExpect(jsonPath("$.expected").value("DENY"));
 
+  mvc.perform(post("/api/v1/projects/"+projectId+"/policies")
+    .header("Authorization","Bearer "+ownerToken).contentType(MediaType.APPLICATION_JSON)
+    .content("{\"role\":\"USER\",\"resource\":\"orders:own\",\"action\":\"READ\",\"expected\":\"DENY\"}"))
+    .andExpect(status().isCreated());
+
   mvc.perform(post("/api/v1/projects/"+projectId+"/policies/evaluate")
     .header("Authorization","Bearer "+ownerToken).contentType(MediaType.APPLICATION_JSON)
     .content("{\"rule\":{\"role\":\"USER\",\"resource\":\"admin:settings\",\"action\":\"READ\",\"expected\":\"DENY\"},\"observed\":\"ALLOW\"}"))
@@ -57,6 +62,17 @@ class AuthAndTenantIntegrationTest {
     .header("Authorization","Bearer "+ownerToken).contentType(MediaType.APPLICATION_JSON)
     .content("{\"status\":\"RESOLVED\"}"))
     .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RESOLVED"));
+
+  mvc.perform(post("/api/v1/projects/"+projectId+"/runs/demo")
+    .header("Authorization","Bearer "+ownerToken))
+    .andExpect(status().isOk()).andExpect(jsonPath("$.totalTests").value(2))
+    .andExpect(jsonPath("$.passedTests").value(1)).andExpect(jsonPath("$.failedTests").value(1));
+
+  mvc.perform(get("/api/v1/projects/"+projectId+"/runs").header("Authorization","Bearer "+ownerToken))
+    .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+
+  mvc.perform(get("/api/v1/projects/"+projectId+"/findings").header("Authorization","Bearer "+ownerToken))
+    .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
 
   String login=mapper.writeValueAsString(java.util.Map.of("email",email,"password","A-Strong-Test-Password-2026"));
   mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(login))
