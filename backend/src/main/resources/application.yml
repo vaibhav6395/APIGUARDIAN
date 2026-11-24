@@ -5,9 +5,9 @@ spring:
   application:
     name: apiguardian
   datasource:
-    url: ${SPRING_DATASOURCE_URL:${DATABASE_URL:jdbc:postgresql://localhost:5432/apiguardian}}
+    url: ${SPRING_DATASOURCE_URL:${DATABASE_URL}}
     username: ${DATABASE_USERNAME:apiguardian}
-    password: ${DATABASE_PASSWORD:}
+    password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
