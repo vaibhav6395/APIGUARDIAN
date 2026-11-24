@@ -1,6 +1,6 @@
 # Build the React UI and package it inside Spring Boot so a hosting platform
 # needs only one web service plus a managed PostgreSQL database.
-FROM node:22-alpine AS frontend-build
+FROM node:26-alpine AS frontend-build
 WORKDIR /workspace/frontend
 RUN npm install --global npm@11.21.3
 COPY frontend/package*.json ./
