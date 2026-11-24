@@ -1,13 +1,51 @@
 services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: apiguardian
+      POSTGRES_USER: apiguardian
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-local_dev_password_change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apiguardian -d apiguardian"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [internal]
   api:
-    build: ./backend
+    build:
+      context: ./backend
+    restart: unless-stopped
     environment:
       SERVER_PORT: 8080
-    ports:
-      - "8080:8080"
-  web:
-    build: ./frontend
-    ports:
-      - "5173:5173"
+      DATABASE_URL: jdbc:postgresql://db:5432/apiguardian
+      DATABASE_USERNAME: apiguardian
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-local_dev_password_change_me}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env before starting}
+      JWT_ISSUER: ${JWT_ISSUER:-apiguardian}
     depends_on:
-      - api
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    networks: [internal]
+  web:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8088}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [internal]
+volumes:
+  postgres_data:
+networks:
+  internal:
+    driver: bridge
