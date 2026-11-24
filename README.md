@@ -1,71 +1,89 @@
 # APIGUARDIAN
 
-**Continuous API Authorization Security Testing**
+**API authorization policy management and regression review**
 
-APIGUARDIAN is a developer-focused security workspace for defining expected API access decisions and comparing them with observed authorization behaviour. Its goal is to help teams catch object-level and function-level authorization regressions before release.
+APIGUARDIAN is a defensive security workspace for teams that need to document expected API access decisions, compare observed outcomes, and track authorization mismatches. Use it only for systems you own or are explicitly authorized to assess.
 
-> **Responsible-use boundary:** Test only applications you own or are explicitly authorized to assess. The current release is an early foundation and UI preview. It does not scan arbitrary public targets.
+## Current implementation
 
-## Current implementation status
-
-| Component | Status |
+| Capability | Status |
 |---|---|
-| React + TypeScript dashboard preview | Implemented; synthetic data only |
-| Spring Boot service | Initial foundation |
-| Health endpoint | Implemented at `/api/v1/health` |
-| Deterministic policy evaluator | Implemented at `POST /api/v1/policies/evaluate` |
-| Policy evaluator unit tests | Added; not yet run in this environment |
-| CI workflow | Added; first GitHub Actions run pending |
-| Authentication and multi-tenancy | Planned |
-| OpenAPI import and endpoint inventory | Planned |
-| Authorized API test runner | Planned; local demo target first |
-| Persistent findings and run history | Planned |
-| PostgreSQL/Flyway integration | Planned |
+| Registration and login | Implemented with BCrypt and signed HS256 JWTs |
+| Workspace creation | Implemented; registration creates an owner workspace |
+| Project management | Implemented; workspace membership enforced server-side |
+| Authorization policies | Implemented; stored per project |
+| Policy evaluation | Implemented; expected and observed decisions compared |
+| Evaluation history | Persisted in PostgreSQL |
+| Findings | Persisted, listed and status-updatable |
+| Dashboard | Connected to authenticated APIs |
+| Database migrations | Flyway |
+| Container deployment | Docker Compose, PostgreSQL, Nginx |
+| HTTPS instructions | Host Caddy reverse-proxy guide |
+| CI | Backend integration tests and frontend build |
+| OpenAPI import and live target runner | Not yet implemented |
+| MFA, password reset, invitations and billing | Not yet implemented |
 
-Dashboard figures and findings are illustrative examples, not measured security results. The current dashboard actions replay local UI state and do not send requests to a target API.
+**Important scope note:** Current policy evaluation compares a caller-supplied observed decision with the expected policy. It does not yet make requests to a customer API or independently discover vulnerabilities. Dashboard results are only as trustworthy as the supplied observed decision.
 
-## Technology
+## Stack
 
-- Backend: Java 21, Spring Boot 3.4, Maven
-- Frontend: React 18, TypeScript, Vite
-- Tests: JUnit 5
-- Delivery: Dockerfiles, Docker Compose and GitHub Actions foundation
+- Java 21, Spring Boot 3.4, Spring Security, JDBC
+- PostgreSQL 16, Flyway
+- React 18, TypeScript, Vite, Nginx
+- JUnit 5, MockMvc, GitHub Actions
+- Docker Compose
 
-## Run locally
+## Run with Docker Compose
 
-### Backend
-Prerequisites: JDK 21 and Maven 3.9+.
+Prerequisites: Docker Engine and Docker Compose v2.
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and set a strong unique `DATABASE_PASSWORD` and a random `JWT_SECRET` (at least 32 characters). Then:
+
+```bash
+docker compose up --build -d
+docker compose ps
+docker compose logs -f api
+```
+
+Open http://127.0.0.1:8088 (or your configured `WEB_PORT`). The API is proxied through the web container at `/api`; PostgreSQL is not published to the host.
+
+## Run checks locally
+
+Backend requires Java 21, Maven 3.9+ and a reachable PostgreSQL database configured through `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, and `JWT_SECRET`.
 
 ```bash
 cd backend
-mvn test
-mvn spring-boot:run
+mvn verify
 ```
 
-Health check:
-
-```bash
-curl http://localhost:8080/api/v1/health
-```
-
-Policy evaluation example:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/policies/evaluate \
-  -H 'Content-Type: application/json' \
-  -d '{"rule":{"role":"USER","resource":"admin:settings","action":"READ","expected":"DENY"},"observed":"ALLOW"}'
-```
-
-### Frontend
-Prerequisites: Node.js 20+.
+Frontend:
 
 ```bash
 cd frontend
 npm install
+npm test -- --passWithNoTests
+npm run build
 npm run dev
 ```
 
-Open http://localhost:5173.
+For local frontend development, Vite proxies `/api` to `http://localhost:8080`.
+
+## API outline
+
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `GET|POST /api/v1/workspaces/{workspaceId}/projects`
+- `GET|POST /api/v1/projects/{projectId}/policies`
+- `POST /api/v1/projects/{projectId}/policies/evaluate`
+- `GET /api/v1/projects/{projectId}/findings`
+- `PATCH /api/v1/projects/{projectId}/findings/{findingId}`
+- `GET /api/v1/health`
+
+Protected routes require `Authorization: Bearer <access-token>`. Workspace and project access is checked by the API, not trusted from frontend state.
 
 ## Documentation
 
@@ -73,22 +91,15 @@ Open http://localhost:5173.
 - [Architecture](docs/ARCHITECTURE.md)
 - [API design](docs/API-DESIGN.md)
 - [Threat model](docs/THREAT-MODEL.md)
-- [Security and responsible use](docs/SECURITY.md)
+- [Security policy](docs/SECURITY.md)
+- [Security test plan](docs/SECURITY-TEST-PLAN.md)
 - [Development guide](docs/DEVELOPMENT.md)
+- [Deployment guide](docs/DEPLOYMENT.md)
 - [Roadmap](docs/ROADMAP.md)
 
-## Next milestones
+## Production-readiness note
 
-1. Add authentication and tenant-scoped workspaces.
-2. Add persistent projects, endpoint inventory and policy storage.
-3. Add OpenAPI parsing with strict upload limits.
-4. Build an isolated local demo API with synthetic identities and owner-scoped records.
-5. Implement a bounded test runner that targets only the bundled demo by default.
-6. Persist runs, evidence and findings; add regression comparison and report export.
-
-## Non-goals
-
-APIGUARDIAN is not an exploit framework, internet-wide scanner, credential harvesting tool or substitute for a professional penetration test. Automated findings require human review.
+The repository includes a deployment baseline, not a certification that the service is production-secure for every environment. Before handling real customer data, complete the deployment checklist, set and protect secrets, configure HTTPS and backups, add rate limiting and operational monitoring, and arrange an independent security review. Live API target testing, OpenAPI import, account recovery, MFA and collaboration flows remain roadmap work.
 
 ## License
 
