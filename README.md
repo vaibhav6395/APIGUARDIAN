@@ -19,7 +19,8 @@ APIGUARDIAN is a defensive security workspace for teams that need to document ex
 | Findings | Persisted, listed and status-updatable |
 | Dashboard | Connected to authenticated APIs |
 | Database migrations | Flyway |
-| Container deployment | Docker Compose, PostgreSQL, Nginx |
+| Local development deployment | Docker Compose, PostgreSQL, Nginx |
+| Hosting-platform image | Single Docker image with bundled React UI and Spring Boot API; external PostgreSQL |
 | HTTPS instructions | Host Caddy reverse-proxy guide |
 | CI | Backend integration tests and frontend build |
 | OpenAPI import and customer target runner | Not yet implemented |
@@ -34,6 +35,10 @@ APIGUARDIAN is a defensive security workspace for teams that need to document ex
 - React 18, TypeScript, Vite, Nginx
 - JUnit 5, MockMvc, GitHub Actions
 - Docker Compose
+
+## Hosting-platform preparation
+
+The root `Dockerfile` builds a single image containing the React frontend and Spring Boot API. Deploy it as one Docker web service and connect it to a managed PostgreSQL database. The app honors the host-provided `PORT` and supports an external JDBC database URL. See [Hosting platform preparation](docs/HOSTING-PLATFORM-READY.md). No hosting provider is selected or deployed automatically.
 
 ## Run with Docker Compose
 
@@ -99,6 +104,7 @@ Protected routes require `Authorization: Bearer <access-token>`. Workspace and p
 - [Security test plan](docs/SECURITY-TEST-PLAN.md)
 - [Development guide](docs/DEVELOPMENT.md)
 - [Deployment guide](docs/DEPLOYMENT.md)
+- [Hosting-platform preparation](docs/HOSTING-PLATFORM-READY.md)
 - [Roadmap](docs/ROADMAP.md)
 
 ## Production-readiness note
