@@ -79,4 +79,4 @@ Encrypt the dump before moving it off the host. Define retention, recovery-point
 
 ## Current product limitations
 
-The initial release supports registration/login, workspace-scoped projects, policy storage and deterministic policy evaluation. It does not yet include external API test execution, OpenAPI import, persistent run history/findings, MFA, password reset, invitation flows or billing. Do not market these as implemented until their code and tests are delivered.
+The current release supports registration/login, workspace-scoped projects, policy storage, deterministic policy evaluation, persisted evaluation history, findings and a bounded local synthetic test runner. It does not yet include external API test execution, OpenAPI import, MFA, password reset, invitation flows or billing. Do not market these as implemented until their code and tests are delivered.
