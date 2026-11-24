@@ -44,8 +44,21 @@ public class PolicyController {
     @PostMapping("/evaluate")
     public PolicyEvaluation evaluate(@PathVariable long projectId, @AuthenticationPrincipal Jwt jwt,
                                      @Valid @RequestBody EvaluationRequest request) {
-        requireProjectAccess(projectId, userId(jwt));
-        return engine.evaluate(request.rule(), request.observed());
+        long userId=userId(jwt);
+        requireProjectAccess(projectId, userId);
+        PolicyEvaluation result=engine.evaluate(request.rule(), request.observed());
+        Long evaluationId=jdbc.queryForObject("""
+            INSERT INTO policy_evaluations(project_id,created_by,role_name,resource,action,expected_decision,observed_decision,matched,explanation)
+            VALUES (?,?,?,?,?,?,?,?,?) RETURNING id
+            """,Long.class,projectId,userId,result.role(),result.resource(),result.action(),
+            result.expected().name(),result.observed().name(),result.matched(),result.explanation());
+        if(!result.matched()) {
+            String severity=result.expected()==AccessDecision.DENY && result.observed()==AccessDecision.ALLOW ? "CRITICAL" : "MEDIUM";
+            String title="Unexpected "+result.observed()+" decision for "+result.role();
+            jdbc.update("INSERT INTO findings(project_id,evaluation_id,title,severity,details) VALUES (?,?,?,?,?)",
+                projectId,evaluationId,title,severity,result.explanation());
+        }
+        return result;
     }
 
     private long userId(Jwt jwt) {
