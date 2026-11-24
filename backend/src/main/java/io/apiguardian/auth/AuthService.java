@@ -11,6 +11,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -61,7 +63,7 @@ public class AuthService {
         var claims=JwtClaimsSet.builder().issuer(issuer).issuedAt(now)
             .expiresAt(now.plus(expirationMinutes,ChronoUnit.MINUTES)).subject(id.toString())
             .claim("email",email).claim("name",name).build();
-        String token=jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+        String token=jwtEncoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
         return Map.of("accessToken",token,"tokenType","Bearer","expiresIn",expirationMinutes*60,
             "user",Map.of("id",id,"email",email,"displayName",name),"workspaceId",workspace==null?0L:workspace);
     }
