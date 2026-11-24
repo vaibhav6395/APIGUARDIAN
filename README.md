@@ -13,6 +13,8 @@ APIGUARDIAN is a defensive security workspace for teams that need to document ex
 | Project management | Implemented; workspace membership enforced server-side |
 | Authorization policies | Implemented; stored per project |
 | Policy evaluation | Implemented; expected and observed decisions compared |
+| Local demo runner | Implemented; fixed synthetic role/resource cases only |
+| Test run history | Persisted with pass/fail totals |
 | Evaluation history | Persisted in PostgreSQL |
 | Findings | Persisted, listed and status-updatable |
 | Dashboard | Connected to authenticated APIs |
@@ -20,10 +22,10 @@ APIGUARDIAN is a defensive security workspace for teams that need to document ex
 | Container deployment | Docker Compose, PostgreSQL, Nginx |
 | HTTPS instructions | Host Caddy reverse-proxy guide |
 | CI | Backend integration tests and frontend build |
-| OpenAPI import and live target runner | Not yet implemented |
+| OpenAPI import and customer target runner | Not yet implemented |
 | MFA, password reset, invitations and billing | Not yet implemented |
 
-**Important scope note:** Current policy evaluation compares a caller-supplied observed decision with the expected policy. It does not yet make requests to a customer API or independently discover vulnerabilities. Dashboard results are only as trustworthy as the supplied observed decision.
+**Important scope note:** Manual policy evaluation compares a caller-supplied observed decision with the expected policy. The bundled demo runner exercises a fixed local synthetic authorization model and records its results; it does not make requests to a customer API or independently discover vulnerabilities. Dashboard results must not be represented as proof that a customer API is secure.
 
 ## Stack
 
@@ -79,6 +81,8 @@ For local frontend development, Vite proxies `/api` to `http://localhost:8080`.
 - `GET|POST /api/v1/workspaces/{workspaceId}/projects`
 - `GET|POST /api/v1/projects/{projectId}/policies`
 - `POST /api/v1/projects/{projectId}/policies/evaluate`
+- `POST /api/v1/projects/{projectId}/runs/demo`
+- `GET /api/v1/projects/{projectId}/runs`
 - `GET /api/v1/projects/{projectId}/findings`
 - `PATCH /api/v1/projects/{projectId}/findings/{findingId}`
 - `GET /api/v1/health`
