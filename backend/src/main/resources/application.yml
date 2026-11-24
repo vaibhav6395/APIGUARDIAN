@@ -1,13 +1,13 @@
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${PORT:${SERVER_PORT:8080}}
   forward-headers-strategy: framework
 spring:
   application:
     name: apiguardian
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/apiguardian}
+    url: ${SPRING_DATASOURCE_URL:${DATABASE_URL:jdbc:postgresql://localhost:5432/apiguardian}}
     username: ${DATABASE_USERNAME:apiguardian}
-    password: ${DATABASE_PASSWORD:local_dev_password_change_me}
+    password: ${DATABASE_PASSWORD:}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -30,6 +30,6 @@ management:
         enabled: true
 security:
   jwt:
-    secret: ${JWT_SECRET:local-only-change-this-secret-before-deployment-123456}
+    secret: ${JWT_SECRET}
     issuer: ${JWT_ISSUER:apiguardian}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
